@@ -55,6 +55,7 @@ EDITABLE: dict[str, type | tuple[type, ...]] = {
     "website": (str, type(None)),
     "color_background": str,
     "color_outline": str,
+    "background_picture": str,
     "profile_visibility": Visibility,
     "profile_sections": tuple,
     "rsvp_visibility": Visibility,

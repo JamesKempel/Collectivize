@@ -8,20 +8,20 @@ const columns = {
 };
 
 const nodes = [
-    { id: "avery", type: "people", x: 34, y: 635, title: "Avery", subtitle: "Chapter admin", icon: "A", description: "Admin of the Alpha Beta, Gamma Chapter. Avery publishes chapter events and confirmed Drew's membership." },
+    { id: "avery", type: "people", x: 34, y: 635, title: "Avery", subtitle: "Chapter admin", icon: "A", description: "Admin of the Sigma Chi Pi Chapter. Avery publishes chapter events and confirmed Drew's membership." },
     { id: "blake", type: "people", x: 34, y: 360, title: "Blake", subtitle: "National admin", icon: "B", description: "Admin of Alpha Beta National, and accepted its co-host invitation for the philanthropy 5K." },
     { id: "casey", type: "people", x: 34, y: 485, title: "Casey", subtitle: "Club admin", icon: "C", description: "Admin of the Robotics Club. Casey published Robot demo day and tagged the club and event with Robotics." },
-    { id: "drew", type: "people", x: 34, y: 775, title: "Drew", subtitle: "Chapter officer", icon: "D", description: "Confirmed chapter member with the Officer role at Alpha Beta, Gamma Chapter." },
+    { id: "drew", type: "people", x: 34, y: 775, title: "Drew", subtitle: "Chapter officer", icon: "D", description: "Confirmed chapter member with the Officer role at Sigma Chi Pi Chapter." },
     { id: "emery", type: "people", x: 34, y: 525, title: "Emery", subtitle: "Student · request pending", icon: "E", badge: "PENDING", badgeTone: "warning", description: "Emery has requested membership in Robotics Club. The request has not been confirmed yet." },
 
     { id: "university", type: "orgs", x: 355, y: 135, title: "Northbridge University", subtitle: "Institution", icon: "U", description: "The university sits above the Interfraternity Council and Robotics Club in the demo hierarchy." },
     { id: "national", type: "orgs", x: 355, y: 340, title: "Alpha Beta National", subtitle: "National organization", icon: "N", description: "The national organization has its own admin, Blake, and co-hosts the Spring philanthropy 5K." },
-    { id: "ifc", type: "orgs", x: 355, y: 555, title: "Northbridge Interfraternity Council", subtitle: "Council", icon: "C", description: "The Interfraternity Council is under Northbridge University and includes the Gamma Chapter in its hierarchy." },
-    { id: "chapter", type: "orgs", x: 355, y: 765, title: "Alpha Beta, Gamma Chapter", subtitle: "Chapter · claimed", icon: "Γ", badge: "CLAIMED", description: "The chapter is part of Alpha Beta National and the Interfraternity Council. Avery is its admin; Drew is a confirmed officer. It owns the weekly meeting series and chapter events." },
+    { id: "ifc", type: "orgs", x: 355, y: 555, title: "Northbridge Interfraternity Council", subtitle: "Council", icon: "C", description: "The Interfraternity Council is under Northbridge University and includes the Sigma Chi Pi Chapter in its hierarchy." },
+    { id: "chapter", type: "orgs", x: 355, y: 765, title: "Sigma Chi Pi Chapter", subtitle: "Chapter · claimed", icon: "Σ", badge: "CLAIMED", description: "The chapter is part of Alpha Beta National and the Interfraternity Council. Avery is its admin; Drew is a confirmed officer. It owns the weekly meeting series and chapter events." },
     { id: "robotics", type: "orgs", x: 355, y: 470, title: "Robotics Club", subtitle: "Club · claimed", icon: "R", badge: "CLAIMED", description: "The club is under Northbridge University. Casey is its admin; Emery's membership request is pending. The club hosts Robot demo day." },
     { id: "chess", type: "orgs", x: 355, y: 960, title: "Chess Club", subtitle: "Club · unclaimed", icon: "♟", badge: "UNCLAIMED", badgeTone: "muted", description: "A deliberately unclaimed organization listing. It has no admin or hierarchy relationships in the demo data." },
 
-    { id: "series", type: "events", x: 726, y: 65, title: "Weekly chapter meeting", subtitle: "Recurring series · weekly", icon: "↻", description: "A weekly event series owned by the Gamma Chapter, with four upcoming meeting occurrences." },
+    { id: "series", type: "events", x: 726, y: 65, title: "Weekly chapter meeting", subtitle: "Recurring series · weekly", icon: "↻", description: "A weekly event series owned by the Sigma Chi Pi Chapter, with four upcoming meeting occurrences." },
     { id: "meeting1", type: "events", x: 726, y: 180, title: "Chapter meeting · 1", subtitle: "Occurrence · Student Center", icon: "◷", description: "First of four upcoming occurrences in the Weekly chapter meeting series. Location: Student Center, Room 204." },
     { id: "meeting2", type: "events", x: 726, y: 285, title: "Chapter meeting · 2", subtitle: "Occurrence · Student Center", icon: "◷", description: "Second of four upcoming occurrences in the Weekly chapter meeting series. Location: Student Center, Room 204." },
     { id: "meeting3", type: "events", x: 726, y: 390, title: "Chapter meeting · 3", subtitle: "Occurrence · Student Center", icon: "◷", description: "Third of four upcoming occurrences in the Weekly chapter meeting series. Location: Student Center, Room 204." },

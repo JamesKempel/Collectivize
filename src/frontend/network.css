@@ -22,7 +22,7 @@
 
 select { font: inherit; color: inherit; }
 
-.network-page { max-width: 1100px; margin: 0 auto; padding: 28px 32px 48px; }
+.network-page { max-width: 1440px; margin: 0 auto; padding: 28px 32px 48px; }
 
 /* --- page header (shared with the Profile page) -------------------------- */
 
@@ -92,7 +92,40 @@ select { font: inherit; color: inherit; }
 }
 
 /* The map fills its box: no circle, no rim. */
-.nw-circle { width: 100%; height: var(--bubble); border-radius: 12px; overflow: hidden; }
+.nw-circle { position: relative; width: 100%; height: var(--bubble); border-radius: 12px; overflow: hidden; }
+
+/* The full-screen button, top right of the map. */
+.nw-expand {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--line, #e6e5df);
+    border-radius: 8px;
+    background: var(--card, #fbfaf7);
+    color: var(--b-ink);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+}
+.nw-expand:hover { background: #fff; }
+.nw-expand:focus-visible { outline: 2px solid var(--b-accent); outline-offset: 2px; }
+.nw-expand svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Full screen: the map (and its switch) covers the whole window, above the nav. */
+.nw-bubble.is-expanded {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    grid-template-rows: minmax(0, 1fr) auto auto auto;
+    padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+    background: var(--b-bg);
+}
+.nw-bubble.is-expanded .nw-circle { height: 100%; border-radius: 10px; }
+html.nw-expanded, html.nw-expanded body { overflow: hidden; }
 
 .nw-map { display: block; width: 100%; height: 100%; }
 
@@ -415,3 +448,53 @@ select { font: inherit; color: inherit; }
 
 /* "More" / "Less" under a list that shows its top three. */
 .nw-more { display: block; margin: 8px 0 0 auto; }
+
+/* --- the map on the left, whoever is in the middle on the right ------------ */
+
+.nw-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.nw-side {
+    display: grid;
+    gap: 12px;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    border-radius: 16px;
+}
+
+/* The profile is laid out for a full page; beside the map it's one column. */
+.nw-side .profile-grid { grid-template-columns: minmax(0, 1fr); }
+.nw-side .p-name { font-size: 24px; }
+.nw-side-open { justify-self: start; }
+.nw-side-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-self: start; }
+
+.nw-org {
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+}
+.nw-org-name { margin: 0; font-size: 22px; font-weight: 650; }
+.nw-org-kind { margin: 0; color: var(--muted); font-size: 13px; }
+.nw-org-site { justify-self: start; font-size: 13px; }
+.nw-org-heading { margin: 10px 0 0; font-size: 14px; font-weight: 650; }
+.nw-org-events { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.nw-org-event { display: grid; gap: 1px; }
+.nw-org-date { color: var(--muted); font-size: 12px; }
+.nw-org-title { font-weight: 600; }
+.nw-org-where { color: var(--muted); font-size: 12.5px; }
+.nw-org-empty { margin: 0; color: var(--muted); }
+
+/* Narrow screens: the page goes under the map. */
+@media (max-width: 960px) {
+    .nw-split { grid-template-columns: minmax(0, 1fr); }
+    .nw-side { position: static; max-height: none; overflow: visible; }
+}

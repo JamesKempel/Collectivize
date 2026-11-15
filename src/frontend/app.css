@@ -172,3 +172,36 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .team-powers label { display: inline-flex; align-items: center; gap: 5px; }
 .team-hidden { display: flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 13px; }
 .panel > .account-danger:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* --- org page: members list (org.js) ------------------------------------- */
+
+.org-search { width: 100%; margin: 0 0 8px; }
+.org-more {
+    margin: 8px 0 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+/* The website box at the top of an org page. */
+.org-site {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    margin: 0 0 16px; padding: 12px 16px; box-sizing: border-box;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--card); color: var(--ink); text-decoration: none;
+    font: inherit; text-align: left; cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+}
+.org-site:hover, .org-site:focus-visible { border-color: var(--green); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.org-site.is-empty { border-style: dashed; background: transparent; }
+.org-site-icon { font-size: 22px; line-height: 1; }
+.org-site-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.org-site-label { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.org-site-url { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.org-site-go { font-size: 14px; font-weight: 600; white-space: nowrap; color: var(--green); }
+.org-hint { margin: 8px 0 0; font-size: 13px; }

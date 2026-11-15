@@ -57,7 +57,7 @@ def test_personas_list_every_demo_person_with_suggestions_first(api, seeded):
     assert [p["name"] for p in people[:4]] == ["Drew", "Avery", "Casey", "Kai"]
     assert all(p["featured"] for p in people[:4]) and not people[4]["featured"]
     drew = people[0]
-    assert drew["description"] == "student · Alpha Beta, Gamma Chapter"
+    assert drew["description"] == "student · Sigma Chi Pi Chapter"
     assert "[Demo]" not in json.dumps(people) and "@" not in json.dumps(people)
 
 

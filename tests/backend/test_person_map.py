@@ -317,7 +317,7 @@ def api(seeded):
 def test_api_returns_the_viewers_own_map_with_clean_names(api, seeded):
     drew = seeded[1].people["drew"]
     data = api.network({"viewer": drew})
-    assert data["center"] == {"id": drew, "name": "Drew", "kind": "person"}
+    assert data["center"] == {"id": drew, "name": "Drew", "kind": "person", "avatar": None}
     assert data["is_self"] is True and data["orgs"] and data["people"]
     ids = {p["id"] for p in data["people"]}
     assert data["links"] and all(len(pair) == 2 and set(pair) <= ids for pair in data["links"])

@@ -40,6 +40,7 @@ from backend.objects import (
     Tagged,
     VerificationLevel,
 )
+from backend.objects.person import random_avatar
 from backend.objects.base import utc_now
 from backend.rate_limit import RateLimiter
 
@@ -183,6 +184,7 @@ class AppApi:
             person = graph.store.save_node(Person(
                 display_name=_name_from_email(address),
                 email=address,
+                avatar=random_avatar(),
                 verification_level=VerificationLevel.UNIVERSITY_EMAIL,
                 provenance=Provenance(
                     created_by=None, method=ProvenanceMethod.SELF_CLAIM, created_at=self._clock()
@@ -226,6 +228,7 @@ class AppApi:
             return {
                 "id": person.id,
                 "name": person.display_name,
+                "avatar": person.avatar or None,
                 "is_platform_admin": person.is_platform_admin,
                 "viewing_as": None if viewing is None else {
                     "id": viewing.id, "name": viewing.display_name,
@@ -330,10 +333,12 @@ class AppApi:
         return {
             "id": person.id,
             "name": person.display_name,
+            "avatar": person.avatar or None,
             "bio": person.bio,
             "top3": {"title": person.top3_title, "items": list(person.top3_items)}
             if person.top3_title else None,
             "colors": {"background": person.color_background, "outline": person.color_outline},
+            "background_picture": person.background_picture or None,
             "connection": connection,
         }
 
@@ -500,6 +505,7 @@ def _result_json(
     elif result.kind == "person":
         person = graph.store.node(result.id, Person)
         data = {"type": "person", "id": person.id, "name": person.display_name,
+                "avatar": person.avatar or None,
                 "bio": person.bio, "top3_title": person.top3_title or None,
                 "connection": graph.visibility.connection_state(viewer, person.id).value}
     else:
@@ -517,8 +523,9 @@ def _event_json(graph: CollectivizeGraph, event: Event, **extra: Any) -> dict[st
     try:
         host = graph.events.host_node(graph.events.primary_host_id(event.id))
         host_name = host.name if isinstance(host, Organization) else host.display_name
+        host_id, host_kind = host.id, ("org" if isinstance(host, Organization) else "person")
     except (DomainRuleError, LookupError):
-        host_name = None
+        host_name = host_id = host_kind = None
     return {
         "id": event.id,
         "title": event.title,
@@ -527,6 +534,8 @@ def _event_json(graph: CollectivizeGraph, event: Event, **extra: Any) -> dict[st
         "location": event.location,
         "description": event.description,
         "host": host_name,
+        "host_id": host_id,  # with host_kind: lets the page link "Hosted by …" to their page
+        "host_kind": host_kind,
         "is_cancelled": event.status is EventStatus.CANCELLED,
         **extra,
     }
@@ -607,6 +616,7 @@ def _person_ref(
     return {
         "id": person.id,
         "name": person.display_name,
+        "avatar": person.avatar or None,
         "connection": graph.visibility.connection_state(viewer, person.id).value,
         **extra,
     }
@@ -630,8 +640,17 @@ def _org_events(
         DiscoveryQuery(viewer_id=viewer, org_id=org_id, include_related=False, limit=20), now
     )
     items = sorted(page.items, key=lambda i: i.event.starts_at)
+    member = graph.membership.is_member(viewer, org_id)
+
+    def relations(item: Any) -> list[str]:
+        # The same words as /api/my-calendar, so the org page's calendar
+        # (calendar.js) colours and labels these events the same way.
+        rsvp = {"going": "going", "interested": "maybe"}.get(item.my_rsvp.value if item.my_rsvp else "")
+        return [*([rsvp] if rsvp else []), *(["my_org"] if member else [])]
+
     return [
         {"id": i.event.id, "title": i.event.title, "starts_at": i.event.starts_at.isoformat(),
-         "location": i.event.location, "is_cancelled": i.is_cancelled}
+         "ends_at": i.event.ends_at.isoformat(), "location": i.event.location,
+         "is_cancelled": i.is_cancelled, "relations": relations(i)}
         for i in items
     ]

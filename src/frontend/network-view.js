@@ -29,6 +29,7 @@
 
     const firstName = (name) => name.split(" ")[0];
 
+    // Mock profile pictures (demo): an emoji picked from the name, the same everywhere.
     const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2)
         .map((word) => word[0].toUpperCase()).join("");
 
@@ -263,7 +264,7 @@
         // --- nodes ---------------------------------------------------------------
 
         /** A positioned node: shape, initials and a label underneath. */
-        node({ id, x, y, name, label, kind, radius, order, shape }) {
+        node({ id, x, y, name, avatar, label, kind, radius, order, shape }) {
             const group = svg("g", { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, `nw-node ${kind}`);
             if (id) group.dataset.id = id;
             group.dataset.x = x.toFixed(1);
@@ -272,7 +273,7 @@
             const title = svg("title");
             title.textContent = name;
             const mark = svg("text", { y: 1, "aria-hidden": "true" }, "nw-initials");
-            mark.textContent = initials(name);
+            mark.textContent = String(kind).includes("org") ? initials(name) : window.Collectivize.Ui.animal({ name, avatar });
             const caption = svg("text", { y: radius + 17 }, "nw-label");
             wrapLabel(label).forEach((line, i) => {
                 const span = svg("tspan", { x: 0, dy: i === 0 ? 0 : 15 });
@@ -409,8 +410,23 @@
                 }
             });
 
+            // "Full screen": the map fills the whole window (and the screen,
+            // where the browser allows it). Esc or the same button shrinks it.
+            this.expanded = false;
+            this.expand = el("button", "nw-expand");
+            this.expand.type = "button";
+            this.expand.addEventListener("click", () => this.setExpanded(!this.expanded));
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && this.expanded) this.setExpanded(false);
+            });
+            // Esc in the browser's own full screen leaves it: shrink the map too.
+            document.addEventListener("fullscreenchange", () => {
+                if (!document.fullscreenElement && this.expanded) this.setExpanded(false);
+            });
+            this.markExpanded(false);
+
             const circle = el("div", "nw-circle");
-            circle.append(map);
+            circle.append(map, this.expand);
             this.element = el("div", "nw-bubble");
             this.element.append(circle, this.empty, this.options, this.move);
             this.showMutual(this.mutual.checked);
@@ -437,12 +453,43 @@
             this.map.classList.toggle("show-mutual", on);
         }
 
+        /** Grow the map to fill the window, or shrink it back. The whole page
+            (not the map) goes browser-full-screen, so redrawing the map when
+            you click someone keeps you in full screen. */
+        setExpanded(on) {
+            if (on === this.expanded) return;
+            this.markExpanded(on);
+            const root = document.documentElement;
+            if (on && !document.fullscreenElement && root.requestFullscreen) {
+                root.requestFullscreen().catch(() => {}); // not allowed (e.g. iPhone): the window-sized map still works
+            } else if (!on && document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        markExpanded(on) {
+            this.expanded = on;
+            this.element?.classList.toggle("is-expanded", on);
+            document.documentElement.classList.toggle("nw-expanded", on);
+            const label = on ? "Exit full screen" : "Full screen";
+            this.expand.setAttribute("aria-label", label);
+            this.expand.setAttribute("aria-pressed", String(on));
+            this.expand.title = label;
+            const icon = svg("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" });
+            icon.append(svg("path", {
+                d: on ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" // arrows in: shrink
+                    : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5", // corners out: grow
+            }));
+            this.expand.replaceChildren(icon);
+        }
+
         /** Draw a map as read by the page (center, orgs, people, links, near, isSelf). */
         draw(map) {
             const alone = map.orgs.length === 0 && map.people.length === 0;
             this.empty.hidden = !alone;
-            // The switch only matters when friends on the map know each other.
-            this.options.hidden = !(map.links && map.links.length);
+            // The switch only matters when people on the map know each other
+            // or belong to a community shown.
+            this.options.hidden = !(map.links?.length || map.memberships?.length);
             this.empty.textContent = map.isSelf
                 ? "No connections or communities yet."
                 : "Nothing you both share yet.";

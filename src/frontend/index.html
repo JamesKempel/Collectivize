@@ -11,7 +11,7 @@
     <script src="shared.js" defer></script>
     <script src="signin-form.js" defer></script>
     <script src="landing.js" defer></script>
-    <script type="module" src="logo3d-start.js"></script>
+    <script type="module" src="landing-logo.js"></script>
 </head>
 <body>
     <main class="cover">
@@ -20,11 +20,9 @@
                  and stays if WebGL isn't available. -->
             <div class="cover-logo3d" id="logo3d" role="img" aria-label="Collectivize logo">
                 <img class="cover-logo logo-spin" src="/public/brand/logo.svg" alt="" width="600" height="600">
-                <img class="cover-logo logo-spin" src="/public/brand/logo.svg" alt="" width="600" height="600">
             </div>
-            <h1 class="cover-title">
-                <img class="cover-wordmark" src="/public/brand/wordmark-on-paper.svg" alt="Collectivize" width="1210" height="128">
-            </h1>
+            <!-- The logo spells out the name itself, so the heading is for screen readers. -->
+            <h1 class="cover-title">Collectivize</h1>
         </div>
 
         <form class="signin" id="signin" novalidate>

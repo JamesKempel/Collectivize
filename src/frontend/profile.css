@@ -500,3 +500,73 @@ select.edit-input { height: 38px; cursor: pointer; }
 
 /* The network has its own tab: a link to it under the profile. */
 .profile-network-link { margin: 16px 0 0; text-align: center; }
+
+/* An event's host (a link to their page) and place, on one line. */
+.p-event-meta .p-event-host { display: inline; margin: 0; }
+.p-event-meta .p-event-host + span::before { content: " · "; }
+
+/* --- background pictures (profile-render.js BACKGROUND_PICTURES) ----------
+   A banner across the top of the profile. Presets drawn in CSS: nothing to
+   upload or host. Same keys as BACKGROUND_PICTURES in backend/objects/person.py. */
+
+.p-cover {
+    height: 120px;
+    margin: -20px -20px 16px;
+    border-bottom: 1.5px solid var(--p-line);
+    border-radius: 15px 15px 0 0;
+}
+.nw-side .p-cover { height: 90px; }
+
+.p-cover-sunset {
+    background:
+        radial-gradient(circle at 70% 78%, #ffe29a 0 9%, rgba(255, 226, 154, 0) 10%),
+        linear-gradient(180deg, #2b2d6e 0%, #8a3f8f 38%, #ef6f5a 68%, #ffc06e 100%);
+}
+.p-cover-ocean {
+    background:
+        radial-gradient(120% 60% at 50% 115%, #0b4f6c 0 45%, rgba(11, 79, 108, 0) 46%),
+        radial-gradient(120% 60% at 20% 125%, #1279a0 0 50%, rgba(18, 121, 160, 0) 51%),
+        linear-gradient(180deg, #bfe9ff 0%, #63c3e8 55%, #1c8fbd 100%);
+}
+.p-cover-forest {
+    background:
+        conic-gradient(from 150deg at 18% 40%, rgba(0, 0, 0, 0) 0 60deg, #1f5135 60deg 0) 0 0 / 60px 100% repeat-x,
+        conic-gradient(from 150deg at 50% 60%, rgba(0, 0, 0, 0) 0 60deg, #2f6f47 60deg 0) 25px 0 / 46px 100% repeat-x,
+        linear-gradient(180deg, #d9efe0 0%, #9fd0b0 100%);
+}
+.p-cover-lavender {
+    background:
+        radial-gradient(circle at 15% 30%, #f3e8ff 0 18%, rgba(243, 232, 255, 0) 40%),
+        radial-gradient(circle at 85% 70%, #c7b3f0 0 20%, rgba(199, 179, 240, 0) 45%),
+        linear-gradient(135deg, #e4d8fb 0%, #a98fe0 100%);
+}
+.p-cover-sand {
+    background:
+        radial-gradient(140% 70% at 30% 120%, #d9a86c 0 45%, rgba(217, 168, 108, 0) 46%),
+        radial-gradient(140% 70% at 80% 130%, #c48b4f 0 50%, rgba(196, 139, 79, 0) 51%),
+        linear-gradient(180deg, #fff1d6 0%, #f3d6a6 100%);
+}
+.p-cover-night {
+    background:
+        radial-gradient(circle at 80% 30%, #fdf6d8 0 5%, rgba(253, 246, 216, 0) 6%),
+        radial-gradient(1px 1px at 12% 22%, #fff 99%, rgba(255, 255, 255, 0)),
+        radial-gradient(1px 1px at 30% 60%, #fff 99%, rgba(255, 255, 255, 0)),
+        radial-gradient(1.5px 1.5px at 48% 18%, #fff 99%, rgba(255, 255, 255, 0)),
+        radial-gradient(1px 1px at 62% 72%, #fff 99%, rgba(255, 255, 255, 0)),
+        radial-gradient(1.5px 1.5px at 92% 64%, #fff 99%, rgba(255, 255, 255, 0)),
+        radial-gradient(1px 1px at 22% 85%, #fff 99%, rgba(255, 255, 255, 0)),
+        linear-gradient(180deg, #0b1330 0%, #23305e 100%);
+}
+
+/* The picker in the editor: one tile per picture, plus None. */
+.edit-pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.edit-picture {
+    height: 48px;
+    padding: 0;
+    border: 1px solid rgba(32, 43, 41, .25);
+    border-radius: 8px;
+    cursor: pointer;
+}
+.edit-picture.is-none { background: #fff; color: var(--muted); font: inherit; font-size: 12px; }
+.edit-picture[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.edit-picture:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }

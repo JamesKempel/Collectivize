@@ -431,6 +431,8 @@ def _entry_json(entry: CalendarEntry) -> dict[str, Any]:
         "host": None if host is None else (
             host.name if isinstance(host, Organization) else host.display_name
         ),
+        "host_id": None if host is None else host.id,  # with host_kind: "Hosted by …" links to their page
+        "host_kind": None if host is None else ("org" if isinstance(host, Organization) else "person"),
         "relations": sorted(r.value for r in entry.relations),
         "is_cancelled": event.status is EventStatus.CANCELLED,
         "is_draft": not event.was_published,

@@ -7,14 +7,86 @@
     <title>Organization · Collectivize</title>
     <link rel="icon" href="/app/icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="calendar.css">
+    <link rel="stylesheet" href="event-actions.css">
     <link rel="stylesheet" href="nav.css">
     <script src="nav.js"></script>
     <script src="shared.js" defer></script>
+    <script src="add-to-calendar.js" defer></script>
+    <!-- org.js sets window.CalendarSource, so it loads before calendar.js. -->
     <script src="org.js" defer></script>
+    <script src="calendar.js" defer></script>
 </head>
 <body>
     <main class="page" id="org" aria-live="polite">
         <p class="status" id="status" role="status"></p>
     </main>
+
+    <!-- The upcoming-events calendar (calendar.js). org.js moves it into the
+         "Upcoming events" panel when the Calendar view is picked. -->
+    <div hidden>
+        <section id="view-calendar" aria-label="Calendar">
+            <div class="cal-header">
+                <h3 class="cal-title" id="cal-title" aria-live="polite">Calendar</h3>
+                <div class="cal-controls">
+                    <button type="button" class="cal-button" id="cal-today">Today</button>
+                    <div class="cal-step">
+                        <button type="button" class="cal-icon-button" id="cal-prev" aria-label="Previous month">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6"/></svg>
+                        </button>
+                        <button type="button" class="cal-icon-button" id="cal-next" aria-label="Next month">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
+                        </button>
+                    </div>
+                    <div class="cal-views" role="group" aria-label="Calendar view">
+                        <button type="button" class="cal-view" data-mode="month" aria-pressed="true">Month</button>
+                        <button type="button" class="cal-view" data-mode="week" aria-pressed="false">Week</button>
+                        <button type="button" class="cal-view" data-mode="day" aria-pressed="false">Day</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cal-banner" id="cal-banner" role="alert" hidden>
+                <span id="cal-banner-text"></span>
+                <button type="button" class="cal-button" id="cal-retry">Retry</button>
+            </div>
+
+            <ul class="cal-legend" aria-label="Key">
+                <li><span class="cal-chip is-going">Going</span></li>
+                <li><span class="cal-chip is-maybe">Maybe</span></li>
+                <li><span class="cal-chip is-my_org">This org</span></li>
+            </ul>
+
+            <div class="cal-layout">
+                <div class="cal-main">
+                    <section class="cal-month" id="cal-month" aria-labelledby="cal-title">
+                        <div class="cal-weekdays" aria-hidden="true">
+                            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                        </div>
+                        <div class="cal-grid" id="cal-grid"></div>
+                    </section>
+
+                    <section class="cal-hours" id="cal-hours" aria-labelledby="cal-title" hidden>
+                        <div class="hours-head" id="hours-head"></div>
+                        <div class="hours-scroll" id="hours-scroll">
+                            <div class="hours-body" id="hours-body"></div>
+                        </div>
+                    </section>
+                </div>
+
+                <aside class="cal-day" aria-labelledby="day-title">
+                    <p class="day-eyebrow" id="day-eyebrow"></p>
+                    <h3 class="day-title" id="day-title"></h3>
+
+                    <p class="day-status" id="day-status" role="status" aria-live="polite"></p>
+
+                    <ul class="day-list" id="day-list"></ul>
+                    <p class="day-empty" id="day-empty">Nothing from this org this day.</p>
+
+                    <a class="cal-find" id="day-find" href="discover"></a>
+                </aside>
+            </div>
+        </section>
+    </div>
 </body>
 </html>

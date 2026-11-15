@@ -287,6 +287,32 @@ def test_api_needs_a_viewer_and_ignores_attempts_to_edit_someone_else(world):
     assert world.graph.store.node(world.alice.id, Person).bio == ""  # Bob edited Bob
 
 
+def test_a_background_picture_is_saved_shown_and_cleared(world):
+    api = api_for(world)
+    profile = api.profile({"viewer": world.alice.id, "background_picture": "ocean"})["profile"]
+    assert profile["background_picture"] == "ocean"
+    assert world.graph.store.node(world.alice.id, Person).background_picture == "ocean"
+    assert api.profile({"viewer": world.alice.id, "bio": "x"})["profile"]["background_picture"] == "ocean"  # kept
+    assert api.profile({"viewer": world.alice.id, "background_picture": None})["profile"]["background_picture"] is None
+
+
+@pytest.mark.parametrize("picture", ["beach", "OCEAN", "../x", 5])
+def test_only_the_preset_background_pictures_are_accepted(world, picture):
+    api = api_for(world)
+    with pytest.raises((ApiError, DomainRuleError)):  # not text: 400 here; not a preset: the record refuses (400 over HTTP)
+        api.profile({"viewer": world.alice.id, "background_picture": picture})
+    assert world.graph.store.node(world.alice.id, Person).background_picture == ""
+
+
+def test_people_saved_before_background_pictures_existed_still_load():
+    from backend.graph.codec import decode_record, encode_record
+
+    person = Person(display_name="Old", provenance=make_person.__globals__["staff_provenance"]())
+    data = encode_record(person)
+    del data["background_picture"]
+    assert decode_record("Person", data).background_picture == ""
+
+
 def test_unknown_keys_in_the_body_are_ignored_not_saved(world):
     assert profile_changes({"viewer": "v", "email": "x@example.com", "visibility": "public"}) == {}
 

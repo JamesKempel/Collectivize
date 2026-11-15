@@ -68,6 +68,8 @@
             end: end > start ? end : start,
             location: typeof raw.location === "string" ? raw.location : "",
             host: cleanName(raw.host),
+            hostId: typeof raw.host_id === "string" ? raw.host_id : null,
+            hostKind: raw.host_kind === "person" ? "person" : "org",
             relations,
             cancelled: raw.is_cancelled === true,
             draft: raw.is_draft === true,
@@ -183,9 +185,12 @@
             const key = this.rangeKey();
             this.setDayStatus("Loading events…");
             try {
-                const data = await Api.get("/api/my-calendar", {
-                    start: PlanCalendar.iso(start), end: PlanCalendar.iso(end),
-                });
+                // A page can show other events (an org page shows that org's)
+                // by setting window.CalendarSource before this script runs:
+                // (start, end) => Promise of {entries: [...]}, same shape as /api/my-calendar.
+                const data = window.CalendarSource
+                    ? await window.CalendarSource(start, end)
+                    : await Api.get("/api/my-calendar", { start: PlanCalendar.iso(start), end: PlanCalendar.iso(end) });
                 if (id !== this.request) return; // a newer request has started
                 this.byDay = PlanCalendar.index(data, start, end);
                 this.loaded = key;
@@ -489,10 +494,7 @@
             title.textContent = entry.title;
             item.append(time, title);
             if (entry.host) {
-                const host = document.createElement("p");
-                host.className = "day-event-host";
-                host.textContent = `Hosted by ${entry.host}`;
-                item.append(host);
+                item.append(window.Collectivize.Ui.hostedBy(entry.host, entry.hostId, entry.hostKind, "day-event-host"));
             }
             const tags = PlanCalendar.tags(entry);
             if (tags.childElementCount) item.append(tags);
@@ -559,7 +561,7 @@
         }
     }
 
-    // My Events (my-events.js) reloads it when the calendar view is shown.
+    // My Events (my-events.js) and the org page (org.js) reload it when the calendar view is shown.
     const calendar = new PlanCalendar();
     window.MyCalendar = calendar;
     calendar.start();

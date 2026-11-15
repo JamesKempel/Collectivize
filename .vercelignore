@@ -1,0 +1,8 @@
+.venv
+.hypothesis
+data
+config/*.local.json
+tests
+**/__pycache__
+*.md
+!README.md

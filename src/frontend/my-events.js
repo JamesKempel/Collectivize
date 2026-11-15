@@ -206,7 +206,7 @@
             el("div", { className: "list-main" }, [
                 el("p", { className: "list-title", text: event.title }),
                 el("p", { className: "list-meta", text: meta }),
-                event.host ? el("p", { className: "me-host", text: `Hosted by ${cleanName(event.host)}` }) : null,
+                event.host ? Ui.hostedBy(event.host, event.host_id, event.host_kind, "me-host") : null,
             ]),
         ];
         if (!isPast) {

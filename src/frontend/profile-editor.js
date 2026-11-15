@@ -10,7 +10,7 @@
 // side is a live preview drawn by the same renderer as the real page.
 
 (() => {
-    const { el, ProfileRules, ProfileTheme, SECTION_LABELS } = window.Collectivize.Profile;
+    const { el, ProfileRules, ProfileTheme, SECTION_LABELS, BACKGROUND_PICTURES } = window.Collectivize.Profile;
 
     const SWATCHES = ["#E8452F", "#19A88A", "#1E3A9E", "#3D6BFF", "#000000", "#FDFDFB", "#F5F4F0", "#202B29"];
     const SECTIONS = Object.keys(SECTION_LABELS);
@@ -43,6 +43,7 @@
                 website: view.website || "",
                 background: view.colors.background,
                 outline: view.colors.outline,
+                background_picture: BACKGROUND_PICTURES[view.background_picture] ? view.background_picture : "",
                 // Shown sections in their order, then the hidden ones.
                 sections: [
                     ...shown.map((key) => ({ key, shown: true })),
@@ -78,6 +79,7 @@
                     this.colorField("outline", "Outline"),
                     this.outlineNote = el("p", { className: "edit-note", attrs: { hidden: true } }),
                 ]),
+                this.group("Background picture", [this.pictureField()], "A banner across the top of your page."),
                 this.group("Layout", [this.layoutList = el("ol", { className: "edit-layout-list" })],
                     "Choose which sections visitors see, and in what order."),
                 this.group("Who can see what", [
@@ -174,6 +176,25 @@
                 ]),
                 error,
             ]);
+        }
+
+        /** "None" plus one tile per preset picture (kept out of this.fields: no text, no errors). */
+        pictureField() {
+            const choices = [["", "None"], ...Object.entries(BACKGROUND_PICTURES)];
+            this.pictureButtons = choices.map(([key, name]) => {
+                const button = el("button", {
+                    className: `edit-picture${key ? ` p-cover-${key}` : " is-none"}`,
+                    attrs: { type: "button", title: name, "aria-label": `Background picture: ${name}` },
+                });
+                if (!key) button.textContent = "None";
+                button.dataset.picture = key;
+                button.addEventListener("click", () => {
+                    this.draft.background_picture = key;
+                    this.refresh();
+                });
+                return button;
+            });
+            return el("div", { className: "edit-pictures", attrs: { role: "group", "aria-label": "Background picture" } }, this.pictureButtons);
         }
 
         // --- layout: show, hide and reorder sections -------------------------------
@@ -303,6 +324,9 @@
                     }
                 }
             }
+            for (const button of this.pictureButtons) {
+                button.setAttribute("aria-pressed", String(button.dataset.picture === this.draft.background_picture));
+            }
             const colors = { background: this.draft.background, outline: this.draft.outline };
             const faint = !errors.background && !errors.outline && ProfileTheme.outlineIsFaint(colors);
             this.outlineNote.hidden = !faint;
@@ -327,6 +351,7 @@
                 top3: changes.top3 && [0, 1, 2].every((i) => valid(`top3_${i}`)) && valid("top3_title") ? changes.top3 : null,
                 website: valid("website") ? changes.website : null,
                 colors: changes.colors,
+                background_picture: changes.background_picture,
             };
             this.preview.replaceChildren(this.renderer.render(view, "preview"));
         }

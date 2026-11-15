@@ -49,7 +49,8 @@
             title: text(raw.title),
             starts_at: raw.starts_at,
             location: text(raw.location),
-            host: { name: text(raw.host?.name), kind: raw.host?.kind === "person" ? "person" : "org" },
+            host: { name: text(raw.host?.name), kind: raw.host?.kind === "person" ? "person" : "org",
+                    id: typeof raw.host?.id === "string" ? raw.host.id : null },
             is_cancelled: raw.is_cancelled === true,
         };
     }
@@ -68,12 +69,16 @@
             kind: "person",
             id, // needed to send them a connection request
             name,
+            avatar: text(raw.avatar) || null,
             role: text(raw.role),
             verified: raw.verified === true,
             colors: {
                 background: HEX.test(colors.background) ? colors.background : DEFAULT_COLORS.background,
                 outline: HEX.test(colors.outline) ? colors.outline : DEFAULT_COLORS.outline,
             },
+            // A preset key (profile-render.js BACKGROUND_PICTURES); unknown ones are ignored there.
+            background_picture: typeof raw.background_picture === "string" && /^[a-z]{1,20}$/.test(raw.background_picture)
+                ? raw.background_picture : null,
             access: raw.access === "locked" ? "locked" : "full",
             connection: CONNECTIONS.includes(raw.connection) ? raw.connection : "none",
             is_self: raw.is_self === true,
@@ -109,7 +114,7 @@
         if (!raw || !named(raw.center) || !Array.isArray(raw.orgs) || !Array.isArray(raw.people)) return null;
         const closeness = (item) => (Number.isInteger(item.closeness) && item.closeness > 0 ? item.closeness : 0);
         const people = raw.people.filter(named).map((person) => ({
-            id: person.id, name: person.name, isYou: person.is_you === true, closeness: closeness(person),
+            id: person.id, name: person.name, avatar: text(person.avatar) || null, isYou: person.is_you === true, closeness: closeness(person),
         }));
         const ids = new Set(people.map((person) => person.id));
         const pairs = (value) => list(value).filter((pair) => Array.isArray(pair)
@@ -119,7 +124,7 @@
         const isOrg = raw.center.kind === "org";
         const profile = raw.profile && typeof raw.profile === "object" ? raw.profile : {};
         return {
-            center: { id: raw.center.id, name: raw.center.name, isOrg },
+            center: { id: raw.center.id, name: raw.center.name, avatar: text(raw.center.avatar) || null, isOrg },
             isSelf: raw.is_self === true,
             orgs,
             people,

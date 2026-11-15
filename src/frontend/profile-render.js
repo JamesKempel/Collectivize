@@ -92,6 +92,7 @@
                 top3: title ? { title, items } : null,
                 website: draft.website.trim() || null,
                 colors: { background: draft.background.toUpperCase(), outline: draft.outline.toUpperCase() },
+                background_picture: draft.background_picture || null,
                 sections: draft.sections.filter((section) => section.shown).map((section) => section.key),
                 profile_visibility: draft.profile_visibility,
                 rsvp_visibility: draft.rsvp_visibility,
@@ -147,14 +148,25 @@
     const SVG = "http://www.w3.org/2000/svg";
     // The profile's own sections. The network lives on the Network page only.
     const SECTION_LABELS = { about: "About", top3: "Top 3", orgs: "Orgs", events: "Events" };
+    // Background pictures (key -> name). Same keys as BACKGROUND_PICTURES in
+    // backend/objects/person.py; each is drawn by .p-cover-<key> in profile.css.
+    const BACKGROUND_PICTURES = {
+        sunset: "Sunset", ocean: "Ocean", forest: "Forest", lavender: "Lavender", sand: "Sand", night: "Night sky",
+    };
 
     // Draws a profile. Used for the pages and for the editor's live preview.
     // mode: "self" (your own page), "visitor", or "preview" (inert visitor view).
     // slots.onConnection: called after Connect / Accept succeeds, to redraw.
+
     class ProfileRenderer {
         render(view, mode, slots = {}) {
             const surface = el("section", { className: "profile-surface", attrs: { "aria-label": "Profile" } });
             ProfileTheme.apply(surface, view.colors);
+            // Their background picture: a banner across the top (profile.css .p-cover-*).
+            if (BACKGROUND_PICTURES[view.background_picture]) {
+                surface.classList.add("has-cover");
+                surface.append(el("div", { className: `p-cover p-cover-${view.background_picture}`, attrs: { "aria-hidden": "true" } }));
+            }
             if (view.access === "locked") {
                 surface.classList.add("is-locked");
                 surface.append(el("div", { className: "profile-grid" }, [
@@ -174,6 +186,10 @@
         }
 
         static initials(view) {
+            return window.Collectivize.Ui.animal({ name: ProfileRenderer.shownName(view), avatar: view.avatar });
+        }
+
+        static textInitials(view) {
             const words = ProfileRenderer.shownName(view).trim().split(/\s+/);
             const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : Array.from(words[0])[0];
             return (letters || "?").toUpperCase();
@@ -305,7 +321,10 @@
             }, [
                 el("span", { className: "p-event-date", text: DATE_FORMAT.format(new Date(event.starts_at)) }),
                 el("span", { className: "p-event-title", text: event.title }),
-                el("span", { className: "p-event-meta", text: [event.host.name, event.location].filter(Boolean).join(" · ") }),
+                el("span", { className: "p-event-meta" }, [
+                    event.host.name ? window.Collectivize.Ui.hostedBy(event.host.name, event.host.id, event.host.kind, "p-event-host") : null,
+                    event.location ? el("span", { text: event.location }) : null,
+                ]),
                 event.is_cancelled ? el("span", { className: "p-event-tag", text: "Cancelled" }) : null,
             ]))));
             return group;
@@ -318,6 +337,6 @@
 
     window.Collectivize = Object.freeze({
         ...window.Collectivize,
-        Profile: Object.freeze({ el, ProfileRules, ProfileTheme, ProfileRenderer, SECTION_LABELS }),
+        Profile: Object.freeze({ el, ProfileRules, ProfileTheme, ProfileRenderer, SECTION_LABELS, BACKGROUND_PICTURES }),
     });
 })();

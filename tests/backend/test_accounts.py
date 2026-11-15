@@ -15,6 +15,7 @@ from backend.audit import AuditLog
 from backend.config import Environment
 from backend.graph import CollectivizeGraph, PermissionDeniedError
 from backend.objects import Person
+from backend.objects.person import AVATARS
 from backend.seed import seed_mock_data
 from backend.server import DiscoverApi, serve
 from backend.sessions import COOKIE_NAME, SessionStore
@@ -212,6 +213,7 @@ def test_admin_creates_an_account_once(world):
     assert account["name"] == "New Person" and not account["is_platform_admin"]
     created = graph.store.node(account["id"], Person)
     assert created.provenance.created_by == result.people["pat"]
+    assert created.avatar in AVATARS
     assert audit.entries()[-1]["action"] == "create"
     again = post(base, "/api/admin/account/create", {"email": "new.person@northeastern.edu"}, admin)
     assert again[0] == 409

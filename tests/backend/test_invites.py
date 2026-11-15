@@ -10,6 +10,7 @@ from backend.graph import CollectivizeGraph, PermissionDeniedError
 from backend.graph.codec import encode_record
 from backend.graph.invites import MAX_OPEN_INVITES
 from backend.objects import Connected, ConnectionOrigin, DomainRuleError, Invite, Person
+from backend.objects.person import AVATARS
 
 from .conftest import NOW
 
@@ -62,6 +63,7 @@ def test_redeeming_creates_the_person_connected_to_the_inviter(world):
     person = world.graph.store.node(joined.person.id, Person)
     assert person.display_name == "Nia"
     assert person.email == EMAIL
+    assert person.avatar in AVATARS
     assert world.graph.connections.are_connected(person.id, world.alice.id)
     assert joined.connection.origin is ConnectionOrigin.INVITE
     assert joined.inviter.id == world.alice.id

@@ -12,6 +12,7 @@ import pytest
 from backend.app_api import AppApi
 from backend.config import Environment
 from backend.graph import CollectivizeGraph
+from backend.objects.person import AVATARS
 from backend.seed import seed_mock_data
 from backend.server import DiscoverApi, serve
 from backend.sessions import COOKIE_NAME, SessionStore
@@ -82,8 +83,9 @@ def test_a_demo_account_signs_in_by_email(world):
 def test_a_new_northeastern_email_gets_a_new_account(world):
     _, me = sign_in(world[0], "new.student@northeastern.edu")
     assert me["name"] == "New Student" and not me["is_platform_admin"]
+    assert me["avatar"] in AVATARS  # a random animal, picked once at sign-up
     _, again = sign_in(world[0], "new.student@northeastern.edu")
-    assert again["id"] == me["id"]
+    assert again["id"] == me["id"] and again["avatar"] == me["avatar"]
 
 
 @pytest.mark.parametrize("page", ["discover", "profile", "network", "my-events", "org", "account"])

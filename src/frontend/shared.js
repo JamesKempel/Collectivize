@@ -245,6 +245,9 @@
         }
     }
 
+    // Profile pictures (see Ui.animal).
+    const AVATARS = ["🦊", "🐼", "🐸", "🦁", "🐯", "🐨", "🐵", "🦉", "🐙", "🦄", "🐝", "🐢", "🐬", "🦋", "🐧", "🐻"];
+
     /** Small DOM helpers for the v1.1 pages. Text always goes in through
      *  textContent, so server data can never inject markup. */
     const Ui = Object.freeze({
@@ -265,10 +268,19 @@
             return String(name || "").replace(/^\[Demo\]\s*/, "").replace(/\s*\(demo[^)]*\)$/, "");
         },
 
-        /** A round badge with the person's initial. */
+        /** Someone's profile picture: the animal saved when they signed up
+         *  (person.avatar), or, for people saved before that, one picked from
+         *  their name so it's the same on every page. Same list as AVATARS in
+         *  backend/objects/person.py. */
+        animal(person) {
+            if (AVATARS.includes(person.avatar)) return person.avatar;
+            const name = Ui.cleanName(person.name) || "?";
+            return AVATARS[[...name].reduce((sum, ch) => (sum * 31 + ch.codePointAt(0)) >>> 0, 7) % AVATARS.length];
+        },
+
+        /** A round badge with the person's animal. */
         avatar(person, className = "avatar") {
-            return Ui.el("span", { className, text: Ui.cleanName(person.name).charAt(0).toUpperCase() || "?",
-                                   attrs: { "aria-hidden": "true" } });
+            return Ui.el("span", { className, text: Ui.animal(person), attrs: { "aria-hidden": "true" } });
         },
 
         /** Someone's profile page (as far as they let you see it). */
@@ -278,6 +290,24 @@
 
         orgHref(id) {
             return `org?${new URLSearchParams({ id })}`;
+        },
+
+        /** "Hosted by X", with X a link to the org's (or person's) page when we know who it is. */
+        hostedBy(name, id, kind, className = "") {
+            const shown = Ui.cleanName(name);
+            const line = Ui.el("p", { className, text: "Hosted by " });
+            if (!id) {
+                line.append(shown);
+                return line;
+            }
+            const link = Ui.el("a", {
+                className: "host-link",
+                text: shown,
+                attrs: { href: kind === "person" ? Ui.profileHref(id) : Ui.orgHref(id) },
+            });
+            link.addEventListener("click", (event) => event.stopPropagation()); // don't also open/close the card
+            line.append(link);
+            return line;
         },
     });
 

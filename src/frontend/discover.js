@@ -23,6 +23,7 @@
     const TYPE_LABEL = { people: "People", orgs: "Organizations", events: "Events" };
     const KIND = { chapter: "Chapter", national: "National organization", council: "Council", club: "Club", institution: "Institution" };
     const SCORES_KEY = "collectivize.admin.scores";
+    const FRIEND_ICONS = 3; // blank friend icons on a card (discover.html's template) before "+N"
 
     const $ = (id) => document.getElementById(id);
     const { Api, EventActions, Ui } = window.Collectivize;
@@ -450,12 +451,13 @@
             const notes = item.is_cancelled ? ["Cancelled"] : item.is_full ? ["Full"] : [];
             q(".dc-meta").textContent = [...notes, `${DATE.format(start)}, ${TIME.format(start)}–${TIME.format(end)}`, item.location]
                 .filter(Boolean).join(" · ");
-            q(".dc-host").textContent = `Hosted by ${cleanName(item.host.name)}`;
+            q(".dc-host").replaceWith(Ui.hostedBy(item.host.name, item.host.id, item.host.kind, "dc-host dc-hosted-by"));
             q(".dc-description").textContent = item.description;
             this.expandable(node, item);
 
             const shown = reasons.slice(1).filter(
-                (r) => !/friends? going$|away\)?$|^Fits what you asked for|^Not much like|^Hosted by your org/.test(r),
+                // "Like your orgs: …" still comes from the server (ranking, admin scores); it just isn't shown.
+                (r) => !/friends? going$|away\)?$|^Fits what you asked for|^Not much like|^Hosted by your org|^Like your orgs/.test(r),
             );
             q(".dc-reasons").replaceChildren(...shown.slice(0, 3).map((reason) => el("li", { text: reason })));
             this.friends(q(".dc-friends"), item.friends_going);
@@ -463,25 +465,13 @@
             return node;
         }
 
-        /** Clicking an event opens it up: the full description, and a little
-         *  icon by "Hosted by …" that goes to the org's or person's page. */
+        /** Clicking an event opens it up to the full description. (The host's
+         *  name in "Hosted by …" links to their page: Ui.hostedBy.) */
         expandable(node, item) {
             const title = node.querySelector(".dc-card-title");
             const toggle = el("button", { className: "dc-card-toggle", text: item.title,
                                           attrs: { type: "button", "aria-expanded": "false" } });
             title.replaceChildren(toggle);
-            if (item.host.id) {
-                const isOrg = item.host.kind === "org";
-                node.querySelector(".dc-host").append(el("a", {
-                    className: `dc-host-link ${isOrg ? "is-org" : "is-person"}`,
-                    text: cleanName(item.host.name).charAt(0).toUpperCase(),
-                    attrs: {
-                        href: isOrg ? Ui.orgHref(item.host.id) : Ui.profileHref(item.host.id),
-                        "aria-label": `Open ${cleanName(item.host.name)}'s page`,
-                        title: `Open ${cleanName(item.host.name)}'s page`,
-                    },
-                }));
-            }
             const open = (value) => {
                 node.classList.toggle("is-open", value);
                 toggle.setAttribute("aria-expanded", String(value));
@@ -530,10 +520,16 @@
             return `“${item.title}”: ${what}. Your calendar is updated.`;
         }
 
-        /** Friends going are shown without names or initials (Cody's change). */
+        /** Friends going stay anonymous: one blank icon per friend (up to
+            three, then "+"), never names, initials or pictures (Cody's change). */
         friends(container, names) {
             if (!names.length) return;
             container.hidden = false;
+            const avatars = container.querySelector(".dc-avatars");
+            const icons = [...avatars.querySelectorAll(".dc-avatar")]; // the card template's three blank icons
+            icons.slice(names.length).forEach((icon) => icon.remove());
+            // 1, 2 or 3+: past three, a "+" (no exact number).
+            if (names.length > FRIEND_ICONS) avatars.append(el("span", { className: "dc-avatar dc-avatar-more", text: "+" }));
             container.querySelector(".dc-friends-text").textContent = "Friends are attending";
         }
 

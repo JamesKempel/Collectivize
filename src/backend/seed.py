@@ -22,6 +22,7 @@ from backend.objects import (
     Event,
     EventSeries,
     GeoPoint,
+    MemberOf,
     MemberRole,
     Organization,
     OrgKind,
@@ -29,6 +30,7 @@ from backend.objects import (
     Person,
     Provenance,
     ProvenanceMethod,
+    RsvpStatus,
     Tag,
     VerificationLevel,
 )
@@ -71,7 +73,7 @@ ORGS = {
     "university": ("Northbridge University", OrgKind.INSTITUTION),
     "ifc": ("Northbridge Interfraternity Council", OrgKind.COUNCIL),
     "national": ("Alpha Beta National", OrgKind.NATIONAL),
-    "chapter": ("Alpha Beta, Gamma Chapter", OrgKind.CHAPTER),
+    "chapter": ("Sigma Chi Pi Chapter", OrgKind.CHAPTER),
     "robotics": ("Robotics Club", OrgKind.CLUB),
     "chess": ("Chess Club", OrgKind.CLUB),  # deliberately left unclaimed
     "surf": ("Surf Club", OrgKind.CLUB),
@@ -79,6 +81,10 @@ ORGS = {
     "cooking": ("Cooking Club", OrgKind.CLUB),
     "delta": ("Alpha Beta, Delta Chapter", OrgKind.CHAPTER),
     "sigma": ("Sigma Tau, Epsilon Chapter", OrgKind.CHAPTER),
+}
+# Org pages that link to a website (a reserved, always-safe example address).
+WEBSITES = {
+    "chapter": "https://example.org/",
 }
 PEOPLE = {
     "avery": "Avery (demo chapter admin)",
@@ -151,7 +157,116 @@ def seed_mock_data(
             tags=result.tags, institution_id=result.orgs["university"],
             ifc_id=result.orgs["ifc"],
         )
+        DemoCalendar(graph, now).fill(result.people["drew"])
         return replace(result, bulk=extra)
+
+
+class DemoCalendar:
+    """Gives the demo student a full but readable calendar: about 2 events a
+    day, mostly from orgs they're in (blue), with some maybe / saved, a few
+    going, and a couple they host, so every calendar color shows up."""
+
+    PLANS = ("maybe", "saved", "going", "maybe", "saved")
+    BEFORE = timedelta(days=14)
+    AFTER = timedelta(days=42)
+    PER_DAY = 2
+    MAX_ORGS = 4
+    HOSTED = (("Study group: midterm review", 2, "Library, Room 3"),
+              ("Pickup basketball", 9, "North Field"))
+
+    def __init__(self, graph: CollectivizeGraph, now: datetime) -> None:
+        self.g = graph
+        self.now = now
+        self.per_day: dict[Any, int] = {}
+
+    def fill(self, person_id: str) -> None:
+        events = self._events(person_id)
+        mine = self._my_orgs(person_id)
+        for event in events:
+            if mine & self.g.events.host_org_ids(event.id):
+                self._count(event)
+        self._join_orgs(person_id, events, mine)
+        self._host(person_id)
+        self._plans(person_id, events, mine)
+
+    def _count(self, event: Event) -> None:
+        day = event.starts_at.date()
+        self.per_day[day] = self.per_day.get(day, 0) + 1
+
+    def _fits(self, days: list[Any]) -> bool:
+        extra: dict[Any, int] = {}
+        for day in days:
+            extra[day] = extra.get(day, 0) + 1
+        return all(self.per_day.get(d, 0) + n <= self.PER_DAY for d, n in extra.items())
+
+    def _join_orgs(self, person_id: str, events: list[Event], mine: set[str]) -> None:
+        """Join the busiest orgs whose events still fit two a day (blue)."""
+        by_org: dict[str, list[Event]] = {}
+        for event in events:
+            for org_id in self.g.events.host_org_ids(event.id):
+                by_org.setdefault(org_id, []).append(event)
+        joined = 0
+        for org_id, org_events in sorted(by_org.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            if joined >= self.MAX_ORGS:
+                break
+            admins = self.g.membership.admins(org_id)
+            if org_id in mine or not admins or self.g.membership.current(person_id, org_id):
+                continue
+            if not self._fits([e.starts_at.date() for e in org_events]):
+                continue
+            edge = self.g.membership.request(person_id, org_id, self.now)
+            self.g.membership.confirm(edge.id, admins[0].source_id)
+            mine.add(org_id)
+            for event in org_events:
+                self._count(event)
+            joined += 1
+
+    def _host(self, person_id: str) -> None:
+        """A couple of events the demo student hosts (red)."""
+        for title, days_ahead, location in self.HOSTED:
+            start = (self.now + timedelta(days=days_ahead)).replace(
+                hour=EVENING_HOUR, minute=0, second=0, microsecond=0)
+            event = self.g.events.create(Event(
+                title=title, starts_at=start, ends_at=start + timedelta(hours=2),
+                location=location, coordinates=place(location), is_demo=True,
+                provenance=Provenance(created_by=SEED_STAFF_ID, method=ProvenanceMethod.STAFF,
+                                      created_at=self.now),
+            ), person_id, person_id)
+            self.g.events.publish(event.id, person_id, self.now)
+            self._count(event)
+
+    def _plans(self, person_id: str, events: list[Event], mine: set[str]) -> None:
+        """Top each upcoming day up to two with maybe / saved / some going."""
+        i = 0
+        for event in events:
+            if event.starts_at <= self.now or mine & self.g.events.host_org_ids(event.id):
+                continue
+            if not self._fits([event.starts_at.date()]):
+                continue
+            plan = self.PLANS[i % len(self.PLANS)]
+            try:
+                if plan == "saved":
+                    self.g.stars.star(event.id, person_id, self.now)
+                else:
+                    status = RsvpStatus.GOING if plan == "going" else RsvpStatus.INTERESTED
+                    self.g.rsvps.respond(event.id, person_id, status, self.now)
+            except DomainRuleError:
+                continue  # cancelled, full, or otherwise closed: skip it
+            i += 1
+            self._count(event)
+
+    def _my_orgs(self, person_id: str) -> set[str]:
+        return {m.target_id for m in self.g.store.edges(MemberOf, source_id=person_id)
+                if m.is_confirmed_current}
+
+    def _events(self, person_id: str) -> list[Event]:
+        start, end = self.now - self.BEFORE, self.now + self.AFTER
+        events = [
+            e for e in self.g.store.nodes(Event)
+            if e.was_published and e.is_active and start < e.starts_at < end
+            and self.g.privacy.can_view(person_id, e)
+        ]
+        return sorted(events, key=lambda e: (e.starts_at, e.id))
 
 
 class _MockWorld:
@@ -167,7 +282,10 @@ class _MockWorld:
         }
         orgs = {
             key: save(
-                Organization(name=f"{DEMO_PREFIX} {name}", kind=kind, provenance=self._staff())
+                Organization(
+                    name=f"{DEMO_PREFIX} {name}", kind=kind,
+                    website_url=WEBSITES.get(key), provenance=self._staff(),
+                )
             ).id
             for key, (name, kind) in ORGS.items()
         }

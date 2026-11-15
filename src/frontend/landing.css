@@ -38,8 +38,10 @@ body {
     white-space: nowrap;
 }
 
-/* Signed in, the sign-in form gives way to this link (landing.js). */
-.cover-go { font: 600 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+/* Signed in, the sign-in form is hidden and a click anywhere but the logo
+   opens Discover (landing.js). */
+body.is-signed-in { cursor: pointer; }
+body.is-signed-in #logo3d { cursor: grab; }
 
 /* Landing / sign-in (v1.1 spec 4.10). */
 

@@ -201,7 +201,7 @@ def test_api_marks_connections_and_what_you_share(api, seeded):
     friend = api.network({"viewer": drew})["people"][0]
     hit = next(p for p in api.find({"viewer": drew, "q": friend["name"]})["people"]["items"]
                if p["id"] == friend["id"])
-    assert hit["connected"] is True and set(hit) == {"id", "name", "role", "connected", "in_common"}
+    assert hit["connected"] is True and set(hit) == {"id", "name", "avatar", "role", "connected", "in_common"}
 
 
 def test_api_logged_out_finds_orgs_but_no_people(api):

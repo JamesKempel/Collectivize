@@ -19,6 +19,7 @@ from backend.objects import (
     EventStatus,
     MemberOf,
     Organization,
+    Person,
     VerificationLevel,
     Visibility,
 )
@@ -41,7 +42,7 @@ def network_json(
     except PermissionDeniedError:
         return _closed_page(graph, viewer, center, now)  # type: ignore[arg-type]
     return {
-        **_map_json(view),
+        **_map_json(graph, view),
         "network_open": True,
         "profile": _profile_json(graph, viewer, view, now),
     }
@@ -59,7 +60,8 @@ def _closed_page(
         else person_profile_json(graph, viewer, center, now)
     )
     return {
-        "center": {"id": center, "name": profile["name"], "kind": "org" if is_org else "person"},
+        "center": {"id": center, "name": profile["name"], "kind": "org" if is_org else "person",
+                   "avatar": profile.get("avatar")},
         "is_self": False,
         "orgs": [],
         "people": [],
@@ -89,6 +91,7 @@ def find_json(
                 {
                     "id": f.person.id,
                     "name": clean_name(f.person.display_name),
+                    "avatar": f.person.avatar or None,
                     "role": _role(f.person.display_name),
                     "connected": f.connected,
                     "in_common": _in_common(graph, viewer, f.person.id),  # type: ignore[arg-type]
@@ -132,19 +135,22 @@ def clean_name(name: str) -> str:
     return name.removeprefix("[Demo] ").split(" (demo", 1)[0]
 
 
-def _map_json(view: NetworkMap) -> dict[str, Any]:
+def _map_json(graph: CollectivizeGraph, view: NetworkMap) -> dict[str, Any]:
     return {
         "center": {
             "id": view.center.id,
             "name": clean_name(view.center.label),
             "kind": "org" if view.center.kind is NodeKind.ORG else "person",
+            "avatar": None if view.center.kind is NodeKind.ORG
+            else graph.store.node(view.center.id, Person).avatar or None,
         },
         "is_self": view.is_self,
         "orgs": [
             {"id": o.id, "name": clean_name(o.name), "closeness": o.closeness} for o in view.orgs
         ],
         "people": [
-            {"id": p.id, "name": clean_name(p.name), "is_you": p.is_viewer, "closeness": p.closeness}
+            {"id": p.id, "name": clean_name(p.name), "avatar": graph.store.node(p.id, Person).avatar or None,
+             "is_you": p.is_viewer, "closeness": p.closeness}
             for p in view.people
         ],
         "links": [list(pair) for pair in view.links],
@@ -176,9 +182,11 @@ def person_profile_json(
         "kind": "person",
         "id": person.id,
         "name": clean_name(name),
+        "avatar": person.avatar or None,
         "role": _role(name),
         "verified": person.verification_level is not VerificationLevel.NONE,
         "colors": {"background": person.color_background, "outline": person.color_outline},
+        "background_picture": person.background_picture or None,  # shown even when locked, like the colours
         "access": view.access.value,
         "connection": view.connection,
         "is_self": view.is_self,
@@ -227,6 +235,7 @@ def _event_json(graph: CollectivizeGraph, event: Event) -> dict[str, Any]:
         "host": {
             "name": clean_name(host.name if is_org else host.display_name),
             "kind": "org" if is_org else "person",
+            "id": host.id,  # "Hosted by …" links to their page
         },
         "is_cancelled": event.status is EventStatus.CANCELLED,
     }
@@ -271,6 +280,9 @@ def profile_changes(body: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("colors must be {background, outline}")
         changes["color_background"] = _string(colors.get("background"), "background color").upper()
         changes["color_outline"] = _string(colors.get("outline"), "outline color").upper()
+    if "background_picture" in body:
+        picture = body["background_picture"]
+        changes["background_picture"] = "" if picture is None else _string(picture, "background picture")
     if "sections" in body:
         if not isinstance(body["sections"], list):
             raise ValueError("sections must be a list")

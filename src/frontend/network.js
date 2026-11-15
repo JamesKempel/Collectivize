@@ -18,7 +18,7 @@
 // back to your own with a note, and server text is only inserted as text.
 
 (() => {
-    const { Session, NetworkData, NetworkBubble, Profile, Ui } = window.Collectivize;
+    const { Session, NetworkData, NetworkBubble, Profile, ProfileEditor, Ui } = window.Collectivize;
     const { el } = Profile;
     const DEFAULT_BACKGROUND = "#F5F4F0"; // a profile nobody has recoloured (network-data.js)
     const OUTLINE_CONTRAST = 2; // how clearly a node's coloured outline must stand out on the map
@@ -26,6 +26,8 @@
     const $ = (id) => document.getElementById(id);
 
     const TOP = 3; // list entries shown before "More"
+
+    const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" });
 
     const plural = (count, word, many = `${word}s`) => `${count} ${count === 1 ? word : many}`;
 
@@ -41,6 +43,7 @@
             this.data = null;
             this.request = 0;
             this.colors = new Map(); // id -> outline colour for the map, kept while the page is open
+            this.renderer = new Profile.ProfileRenderer(); // the side panel: the same profile as the Profile tab
             // Clicking yourself ("You"): on your own map it opens your Profile
             // tab; on someone else's it brings you back to your own network.
             // Clicking whoever is in the middle of their own network opens
@@ -143,6 +146,7 @@
 
         showEmpty(message) {
             this.data = null;
+            this.bubble.setExpanded(false);
             $("nw-root").replaceChildren();
             $("nw-empty").textContent = message;
             $("nw-empty").hidden = false;
@@ -157,8 +161,11 @@
             if (data.networkOpen) {
                 this.bubble.draw(data);
                 this.paintNodes(data);
+            } else {
+                this.bubble.setExpanded(false); // no map to show full screen
             }
-            $("nw-root").replaceChildren(this.stage());
+            // The map on the left; whoever is in the middle, in full, on the right.
+            $("nw-root").replaceChildren(el("div", { className: "nw-split" }, [this.stage(), this.side()]));
             this.drawLists();
             if (data.truncated) this.note("This is a big network, so only part of it is shown.");
         }
@@ -239,17 +246,9 @@
             const title = isSelf ? "My network"
                 : center.isOrg ? `${center.name}: members you know` : `${possessive(center.name)} network`;
             // Your own network needs no heading (the page title says it).
-            // Someone else's says whose it is, with a link to their page.
-            // On a map, their page opens by clicking them in the middle, so
-            // the button is only shown when their network is closed to you
-            // (no map, so nothing to click).
-            const pageButton = networkOpen ? null : center.isOrg
-                ? el("a", { className: "page-button", text: "Open community page", attrs: { href: Ui.orgHref(center.id) } })
-                : el("a", { className: "page-button", text: `${possessive(center.name.split(" ")[0])} profile`,
-                            attrs: { href: Ui.profileHref(center.id) } });
+            // Someone else's says whose it is; their page is beside the map.
             const head = isSelf ? null : el("div", { className: "nw-stage-head" }, [
                 el("h2", { className: "nw-stage-title", text: title }),
-                pageButton,
             ]);
             const body = networkOpen ? this.bubble.element : el("p", {
                 className: "nw-closed",
@@ -258,6 +257,71 @@
                     : `You and ${center.name.split(" ")[0]} aren't connected, so their network isn't shown.`,
             });
             return el("section", { className: "nw-stage", attrs: { "aria-label": title } }, [head, body]);
+        }
+
+        // --- the page of whoever is in the middle, beside the map ---------------------
+
+        /** Their profile (a community: its details), so picking someone on
+         *  the map shows them straight away, with no extra click. */
+        side() {
+            const { center, isSelf, profile } = this.data;
+            const href = center.isOrg ? Ui.orgHref(center.id) : isSelf ? "profile" : Ui.profileHref(center.id);
+            const label = center.isOrg ? "Open community page" : isSelf ? "Open my profile" : "Open full profile";
+            const body = center.isOrg
+                ? this.orgPanel(profile, center)
+                : this.renderer.render(profile, isSelf ? "self" : "visitor", { onConnection: () => this.load() });
+            const open = el("a", { className: "page-button nw-side-open", text: label, attrs: { href } });
+            let actions = open;
+            if (isSelf) {
+                // Your own page: edit it right here, same editor as the Profile tab.
+                const edit = el("button", { className: "page-button page-button-solid nw-side-open", text: "Edit page",
+                                            attrs: { type: "button" } });
+                edit.addEventListener("click", () => this.edit());
+                actions = el("div", { className: "nw-side-actions" }, [edit, open]);
+            }
+            return el("aside", { className: "nw-side", attrs: { "aria-label": `About ${center.name}` } }, [body, actions]);
+        }
+
+        /** The profile editor (profile-editor.js) in the map's place; saving
+            brings the map back with your new colours. */
+        edit() {
+            const viewer = this.viewer;
+            this.bubble.setExpanded(false);
+            this.request += 1; // an answer still on its way mustn't replace the editor
+            document.title = "Edit profile · Collectivize";
+            $("nw-lists").hidden = true;
+            $("nw-home").hidden = true;
+            new ProfileEditor({
+                view: this.data.profile,
+                renderer: this.renderer,
+                save: (changes) => NetworkData.save(viewer, changes),
+                onSaved: (data) => {
+                    if (viewer !== this.viewer) return;
+                    this.colors.delete(viewer); // repaint your node in its new colour
+                    this.data = data;
+                    this.render();
+                },
+                onCancel: () => this.render(),
+            }).mount($("nw-root"));
+            window.scrollTo({ top: 0 });
+        }
+
+        orgPanel(org, center) {
+            const events = org.upcoming.slice(0, 5);
+            return el("section", { className: "nw-org" }, [
+                el("h2", { className: "nw-org-name", text: center.name }),
+                el("p", { className: "nw-org-kind", text: org.isMember ? `${org.orgKind} · You're a member` : org.orgKind }),
+                org.website ? el("a", { className: "nw-org-site", text: "Website",
+                                        attrs: { href: org.website, target: "_blank", rel: "noopener noreferrer nofollow" } }) : null,
+                el("h3", { className: "nw-org-heading", text: `Coming up (${org.upcomingCount})` }),
+                events.length
+                    ? el("ul", { className: "nw-org-events" }, events.map((event) => el("li", { className: "nw-org-event" }, [
+                        el("span", { className: "nw-org-date", text: DATE_FORMAT.format(new Date(event.starts_at)) }),
+                        el("span", { className: "nw-org-title", text: event.title }),
+                        event.location ? el("span", { className: "nw-org-where", text: event.location }) : null,
+                    ])))
+                    : el("p", { className: "nw-org-empty", text: "Nothing coming up." }),
+            ]);
         }
 
         // --- the lists under the page ------------------------------------------------
@@ -316,7 +380,7 @@
                 window.scrollTo({ top: 0 });
             });
             return el("li", { className: "nw-item nw-row" }, [
-                el("span", { className: markClass, text: initials(node.name) }),
+                el("span", { className: markClass, text: markClass === "nw-avatar" ? Ui.animal(node) : initials(node.name) }),
                 el("span", { className: "nw-row-text" }, [
                     el("span", { className: "nw-item-name", text: node.name }),
                     el("span", { className: "nw-item-sub", text: about }),

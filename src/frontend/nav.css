@@ -239,3 +239,7 @@ html[data-nav="closed"] .sidebar-link:focus-visible .sidebar-label {
     html[data-nav="closed"] .sidebar-signout { display: none; }
     .viewas-banner { top: var(--nav-bar); }
 }
+
+/* "Hosted by <name>": the name opens the host's page (Ui.hostedBy in shared.js). */
+.host-link { color: inherit; font-weight: 650; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.host-link:hover { color: var(--ink, #202b29); text-decoration-thickness: 2px; }

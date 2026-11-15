@@ -34,6 +34,7 @@ from backend.objects import (
     Provenance,
     ProvenanceMethod,
 )
+from backend.objects.person import random_avatar
 
 from .connections import ConnectionService
 from .errors import NotFoundError, PermissionDeniedError
@@ -148,6 +149,7 @@ class InviteService:
                 Person(
                     display_name=display_name,
                     email=address,
+                    avatar=random_avatar(),
                     provenance=Provenance(
                         created_by=None, method=ProvenanceMethod.SELF_CLAIM, created_at=now
                     ),

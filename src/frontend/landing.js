@@ -14,7 +14,7 @@
 
     // Already signed in: carry on to the page they asked for, or, with none
     // (e.g. the nav's wordmark link), show the home page without the sign-in
-    // form, with a link to Discover.
+    // form: a click anywhere but the logo (which spins) opens Discover.
     Api.get("/api/session", {}, { redirectOnSignOut: false })
         .then(({ signed_in: signedIn }) => {
             if (!signedIn || adminEntrance) return; // /admin always shows the form
@@ -25,7 +25,14 @@
 
     function showSignedIn() {
         $("signin").hidden = true;
-        $("cover-go").hidden = false;
+        document.body.classList.add("is-signed-in");
+        const isLogo = (target) => target instanceof Element && target.closest("#logo3d");
+        document.addEventListener("click", (event) => {
+            if (!isLogo(event.target)) location.assign("discover");
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") location.assign("discover");
+        });
     }
 
     // Sent here because the account was ended from somewhere else.

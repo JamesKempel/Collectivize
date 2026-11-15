@@ -4,6 +4,143 @@ This is a running log of changes made to Collectivize, newest first. Each entry 
 
 ---
 
+## 2026-11-15 — Merged James's main (admin security) into the fork
+
+- Brought in `JamesKempel/Collectivize` main ("merge situation": TOTP, account rules, admin setup, hidden admins).
+- Conflicts: the fork's newer home page (no wordmark) and network map (full screen, org mutual lines) kept; `accounts.py` keeps both `hidden` and `avatar` in the admin JSON; both changelogs kept.
+- `api/index.py`: demo session tokens now also carry the admin login name (sessions gained `login`).
+
+---
+
+## 2026-11-15 — Random animal profile pictures; home screen opens Discover on click
+
+- `src/backend/objects/person.py`: `Person.avatar`, one of `AVATARS` (16 animal emoji), picked at random by `random_avatar()` when an account is created (email sign-in, invite, admin create) and kept. People saved before this have `""` and keep the animal picked from their name, so nobody's picture changes or goes blank. No reseed needed.
+- The API sends `avatar` with each person (me, profiles, search, org members, admin lists, network map). `Ui.animal` / `Ui.avatar` in `src/frontend/shared.js` is now the one place that picks what to draw: the saved animal, else the name-based one. Profile cards, the network map and its lists, Discover, org pages and admin lists all use it (they used letters before, except profile cards and the map).
+- Home screen when signed in (`index.html`, `landing.js`, `landing.css`): the "Go to Discover" link is gone; a click (or Enter / Space) anywhere except the logo opens Discover. Clicking the logo still just spins it.
+- Tests: `tests/backend/test_avatars.py`, plus sign-up checks in `test_access.py`, `test_invites.py`, `test_accounts.py`.
+
+---
+
+## 2026-11-15 — Vercel demo: admin login "Billy Joe"
+
+- `api/index.py`: `/admin` on the live demo accepts username "Billy Joe", password "collectivize-demo", signing in as the seeded platform admin Pat (owner). Public on purpose: fake data only (noted in `VERCEL.md`).
+- Sessions on the demo are now signed tokens (`_SignedSessionStore`), so a sign-in works on every Vercel instance instead of falling back to Drew when a request lands on another one. `src/backend/` unchanged.
+
+---
+
+## 2026-11-15 — Sigma Chi Pi Chapter, and a website box on org pages
+
+- `src/backend/seed.py`: the demo chapter "Alpha Beta, Gamma Chapter" is now "Sigma Chi Pi Chapter", and it links to a website (`WEBSITES`, the reserved example address https://example.org/ so the demo never points at a real site). `demo/collectivize-demo.db` reseeded; `src/frontend/main.js` and `tests/backend/test_server.py` updated to the new name.
+- `src/frontend/org.js` / `app.css`: the website is now a box at the very top of the org page (globe, address, "Visit ↗") that opens the site in a new tab; only http(s) addresses are linked. Admins of an org without a website see a dashed "Add a link to your website" box that jumps to the Website field in the editor. The old plain link under the title is gone.
+
+---
+
+## 2026-11-15 — Demo calendar: mostly your orgs, fewer "going", two you host
+
+- `DemoCalendar` (`src/backend/seed.py`) now joins Drew to up to 4 busy orgs (blue), hosts 2 events as Drew (red), then tops days up with maybe / saved and only a few going, about 2 events a day. Demo DB reseeded.
+
+---
+
+## 2026-11-15 — Demo calendar filled out (every color shows)
+
+- `src/backend/seed.py`: new `DemoCalendar` gives Drew going / maybe / saved plans on up to 3 events a day for the next 6 weeks (bulk seed only), so the calendar looks full and shows every color.
+- `demo/collectivize-demo.db` reseeded.
+
+---
+
+## 2026-11-15 — Profiles: background pictures
+
+- **What.** A profile can pick a background picture, shown as a banner across the top of the page (Profile tab, the Network tab's side panel, and the editor's live preview). The editor (both tabs) has a "Background picture" group: None, Sunset, Ocean, Forest, Lavender, Sand, Night sky.
+- **Presets, not uploads.** The pictures are drawn in CSS (`.p-cover-<key>` in `profile.css`), so there's nothing to upload, store, moderate or host, and they survive the Vercel demo's data resets like any other setting. Uploaded photos would need file storage the demo doesn't have.
+- **Backend.** `Person.background_picture` (`objects/person.py`): "" (none) or one of `BACKGROUND_PICTURES`; anything else is refused. Editable through `ProfileService.update` (`graph/profiles.py`), saved with `background_picture` in `POST /api/profile` (`null` clears it), and returned as `background_picture` on profile pages (`network_api.py`) and the connection preview card (`app_api.py`). People saved before this load with no picture (the field has a default), so the demo database needs no reseed.
+- **Keep in step.** The keys live in three places: `BACKGROUND_PICTURES` in `objects/person.py`, `BACKGROUND_PICTURES` in `profile-render.js`, and the `.p-cover-*` rules in `profile.css`.
+- **Heads-up for local databases.** A local DB saved by this version stores the new field; an older checkout reading it refuses the unknown field. Pull before running against a shared DB.
+- **Tests.** `tests/backend/test_profiles.py`: saved, shown, kept and cleared; non-presets refused; old records still load. Not run in this session (dependencies weren't installed); the model's rule was checked by hand.
+
+---
+
+## 2026-11-15 — Network map: names never overlap again; edit your page from the Network tab
+
+- **Overlapping names (`network-layout.js`).** The last layout step, which pushes every node and the name under it clear of the others (`clearLabels`, from "names are never covered by another node or name"), was dropped when `main` was merged in `0dcc30f`: the function was still there but never called. The call is back. Checked with a script: a 30-person map went from up to 42 overlapping name boxes to 0.
+- **Edit page on the Network tab (`network.js`, `network.html`, `network.css`).** On your own network, the side panel has "Edit page" next to "Open my profile". It opens the same editor as the Profile tab (`profile-editor.js`: name, text, Top 3, website, colours, layout, privacy) in the map's place; saving brings the map back with your node in its new colour, Cancel goes straight back.
+- Profiles have no background pictures yet (nothing stores an image), so the editor has none either; that needs a backend change.
+
+---
+
+## 2026-11-15 — Discover: friends going as 1, 2 or 3+ icons; "Friends are attending"
+
+- The friends row shows 1, 2 or 3 blank icons, and a "+" after three when more are going (no exact count). The text beside it is always "Friends are attending" (`discover.js`, `discover.css`).
+
+---
+
+## 2026-11-15 — Discover: friends going anonymous again (with a count); "Like your orgs" hidden
+
+- **Friends going (`discover.js`, `discover.css`).** Profile pictures removed again: friends stay anonymous. The row now shows one blank icon per friend going (1, 2 or 3), then "+N" past three, and the text keeps the count ("A friend is attending" / "4 friends are attending"). `Ui.photo` (added in the entry below) is removed from `shared.js`.
+- **"Like your orgs: …" reason (`discover.js`).** No longer shown on event cards. The backend still produces it (`graph/explain.py`) for ranking and the admin scores view; only the card filter changed. Backend untouched.
+
+---
+
+## 2026-11-15 — Discover: friends going show their profile pictures
+
+- An event card's "Friends are attending" row used three blank person icons whatever happened. It now shows the profile picture of each friend actually going (the demo's animal emoji, the same one as on their profile and the network map), up to three, then "+N". Still no names or initials (Cody's rule). The text says how many: "A friend is attending" / "4 friends are attending" (`discover.js`, `discover.css`).
+- The emoji picker is now also `Ui.photo(name)` in `shared.js`, for pages that don't load the profile or network scripts. It must stay in step with `avatar()` in `profile-render.js` and `network-view.js`.
+
+---
+
+## 2026-11-15 — Org page: short members list with search; events as list or calendar
+
+- **Members (`org.js`, `app.css`).** The members panel shows the top 3, "Show 7 more" opens it to 10, and a search box (shown once there are more than 3) finds anyone you can see in the org, 10 matches at a time. A 200-person chapter no longer runs down the whole page. Admins still get Remove on each row and the add-by-email form.
+- **Upcoming events (`org.js`, `org.html`, `calendar.js`).** A List / Calendar switch, styled like My Events'. The calendar is My Events' own (`calendar.js`): a page can now set `window.CalendarSource` to feed it other events, and the org page feeds it the org's. The view is kept in the URL (`?view=calendar`).
+- **API (`app_api.py`).** `/api/org` events now include `ends_at` and `relations` (`going` / `maybe` from your RSVP, `my_org` if you're a member), the same words as `/api/my-calendar`, so the calendar colours them and shows the right Going / Maybe state.
+
+---
+
+## 2026-11-15 — Network: no more bounces to Discover; full-screen map
+
+- **Bounce fix (Vercel only, `api/index.py`).** Sign-ins live in one function instance's memory, and Vercel spreads requests across instances. An open page checks `/api/session` every 8 seconds; when that check landed on another instance it heard "signed out", sent the visitor to the sign-in screen, and auto-sign-in dropped them on Discover. On the demo, `/api/session` now auto-signs in like every other call (everyone is the demo account, so there's no account switching to protect). `src/backend/` is unchanged, so local and Railway behaviour stay the same.
+- **Full screen (`network-view.js`, `network.css`, `network.js`).** A button at the top right of the map grows it to fill the window, above the nav, with the "Mutual connections" switch still underneath. The whole page goes browser-full-screen where allowed (not the map element, so clicking someone and redrawing keeps you in full screen); on iPhone it fills the window instead. Esc or the same button shrinks it. A closed network (nothing to show) leaves full screen.
+
+---
+
+## 2026-11-15 — "Hosted by …" opens the host's page
+
+- Wherever an event says "Hosted by X" (Discover cards, the calendar, My Events, event lists on profiles and the Network side panel), X is now a link to the org's page (or the person's profile). One helper: `Ui.hostedBy` in `shared.js`; style `.host-link` in `nav.css`.
+- The API now sends who the host is, not only their name: `host_id` and `host_kind` on calendar and My Events entries (`demo_api.py`, `app_api.py`), and `host.id` on profile events (`network_api.py`).
+- Discover's small host icon is gone: the name itself is the link.
+
+---
+
+## 2026-11-15 — "Mutual connections" also links people to their communities
+
+- With the switch on, the map now also draws a line from each person to the communities shown that they belong to (e.g. a chapter), not only lines between people (`network-layout.js`).
+- The switch shows whenever there's something for it to draw: people who know each other, or people in a community shown (`network-view.js`).
+
+---
+
+## 2026-11-15 — Team on the fork: collaborators and push rules
+
+- `jameszupa` and `caumartin-maker` invited to `CodyGrodsky/Collectivize` with write access.
+- `CLAUDE.md` gained "Pushing": pull with rebase before every push, never force-push `main`, PRs for bigger changes, the live site is shared, and don't hand-edit the demo database.
+
+---
+
+## 2026-11-15 — Mock profile pictures (emoji)
+
+- Demo stand-in for profile photos: each person gets an animal emoji picked from their name (same on the network map and their profile). Communities keep their initials. `avatar()` in `network-view.js` and `profile-render.js`.
+
+---
+
+## 2026-11-15 — Network page: the map on the left, the selected page on the right
+
+**Request:** picking someone on the network map took an extra click to see their page.
+
+### What changed
+- The Network page is now two columns: the map on the left, and on the right the page of whoever is in the middle (their full profile, drawn by the same `ProfileRenderer` as the Profile tab, or a community's details and upcoming events). One click on the map now updates both (`network.js`, `network.css`).
+- The right column stays in view while scrolling; under 960px wide it goes under the map.
+- "Open full profile" / "Open community page" under the panel for the full page. The old profile button in the map's header is gone (the panel replaces it).
+
+---
+
 ## 2026-11-15 — Network map: "Mutual connections" switch
 
 ### What changed
@@ -13,6 +150,24 @@ This is a running log of changes made to Collectivize, newest first. Each entry 
 ### Decisions
 - Off by default, to keep the map quiet. The choice is remembered per browser (`localStorage`); if storage is blocked the switch still works for the visit.
 - The switch is hidden when nobody on the map knows each other.
+
+---
+
+## 2026-11-15 — Live public demo on Vercel (branch `vercel-demo`)
+
+**Request:** get a public URL up tonight on Vercel, with fake data only, so the team can ship UI and feature changes fast; Railway later.
+
+### What changed
+- **The whole app runs as one Vercel Python function** (`api/index.py`), using the existing `RequestHandler` from `src/backend/server.py`. No backend code was changed.
+- **`vercel.json`** sends every address to the function and bundles `src/`, `public/`, `app/` and `demo/` with it. **`.vercelignore`** keeps `.venv`, `data/`, tests and local secrets out of the upload.
+- **`demo/collectivize-demo.db`**: a freshly seeded, fully fictional database (110 orgs, 954 people, 995 events), committed so every deploy has the same data.
+- **`VERCEL.md`, `CLAUDE.md`, `AGENTS.md`**: how the deploy works and where to work, for people and their coding agents.
+
+### Decisions
+- Public demo settings: everyone is signed in automatically as Drew (demo), no email codes, AI search off, no admin logins, no secrets.
+- Each function instance works on its own copy of the demo DB in `/tmp`, so changes are short-lived and reset to the demo data. Fine for a demo.
+- The demo DB was seeded fresh, not copied from anyone's local `data/test.db`, which can hold real sign-ins.
+- Vercel passes `/api/index` as the request path after a rewrite, so the rewrite carries the original address as `__path` and the function puts it back before routing.
 
 ---
 
